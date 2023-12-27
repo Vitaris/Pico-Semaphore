@@ -44,6 +44,6 @@ class ws2812:
         for i in range(len(self.ar)):
             self.pixels_set(i, color)
 
-    def pixels_fill_range(self, color, start, num_elements):
+    def pixels_fill_range(self, start, num_elements, color):
         for i in range(start, num_elements, 1):
             self.pixels_set(i, color)
