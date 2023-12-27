@@ -19,8 +19,6 @@ def ws2812_asm():
     wrap()
 
 class ws2812:
-    BLACK = (0, 0, 0)   # temp
-    RED = (255, 0, 0)   # temp
     
     def __init__(self, num_leds, pin_num, brightness):
         self.num_leds = num_leds
@@ -49,9 +47,3 @@ class ws2812:
     def pixels_fill_range(self, color, start, num_elements):
         for i in range(start, num_elements, 1):
             self.pixels_set(i, color)
-
-    def demo(self):
-        self.pixels_fill_range(self.RED, 0, 64)
-        self.pixels_fill_range(self.BLACK, 64, 128)
-        self.pixels_fill_range(self.BLACK, 128, 192)
-        self.pixels_show()
