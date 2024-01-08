@@ -23,11 +23,11 @@ class Semaphore:
             symbol[ 0], symbol[ 4], symbol[ 8], symbol[12], symbol[16], symbol[20], symbol[24], symbol[28]
         ]
     
+    def show_symbol(self, start, stop, color=WHITE):
+        self.ws2812.pixels_fill_range(start, stop, color)
+        # self._set_digit(symbol, 1, offset, color)
+    
     def show_number(self, number, offset=0, color=WHITE):
-        """
-        todo: now the full area is blinking, 
-        should save last digit to some memory and update only diffs ??
-        """
         if number < 0 and number > 99 :
             print(f'Given number is outside range 0-99: {number}')
             return 
@@ -35,141 +35,62 @@ class Semaphore:
         digits = [int(x) for x in str(number)]
         digits.reverse()
 
-        # First clear space for the number
-        self.ws2812.pixels_fill_range(0 + offset, 64 + offset, BLACK)
-        self.ws2812.pixels_show()
-
-
         i = 0
         for digit in digits:
-            a = self._translate_4x8_to_led(raw_digits[digit])
-            for pixel in range(len(a)):
-                if a[pixel] == 1:
-                    self.ws2812.pixels_set(pixel + (i * 32) + offset, color)
+            self._set_digit(raw_digits[digit], i, offset, color)
             i += 1
 
+        if len(digits) == 1:
+            self._set_digit(raw_blank, i, offset, color)
+
         self.ws2812.pixels_show()
-    
-      
+
+    def _set_digit(self, digit_matrix, i, offset, color, lenght=32):
+        matrix = self._translate_4x8_to_led(digit_matrix)
+        for pixel in range(len(matrix)):
+            if matrix[pixel] == 1:
+                self.ws2812.pixels_set(pixel + (i * lenght) + offset, color)
+            elif matrix[pixel] == 0:
+                self.ws2812.pixels_set(pixel + (i * lenght) + offset, BLACK)
+
         
     def traffic_control(self):
         pass
 
     def demo(self):
-        pass
+        i = 0
+        while True:
+            if i == 0:      # Red + count down
+                j = 10
+                self.show_symbol(0, 64, color=RED)
+                self.show_symbol(64, 128, color=BLACK)
+                self.show_symbol(128, 192, color=BLACK)
+                while j > 0: 
+                    self.show_number(j, offset=64, color=WHITE)
+                    j -= 1
+                    time.sleep(1)
+
+            elif i == 1:    # Orange
+                self.show_symbol(0, 64, color=BLACK)
+                self.show_symbol(64, 128, color=ORANGE)
+                self.show_symbol(128, 192, color=BLACK)
+
+            elif i == 2:    # Green + count down
+                j = 10
+                self.show_symbol(0, 64, color=BLACK)
+                self.show_symbol(64, 128, color=BLACK)
+                self.show_symbol(128, 192, color=GREEN)
+                while j > 0: 
+                    self.show_number(j, offset=64, color=WHITE)
+                    j -= 1
+                    time.sleep(1)
+
+            else:
+                i = 0
+
+            i += 0
 
 
 if __name__ == "__main__":
     semaphore = Semaphore()
-    while True:
-        b = 10
-        while b >= 0:
-            semaphore.show_number(b)
-            b -= 1
-            time.sleep(1)
-
-        b = 10
-        while b >= 0:
-            semaphore.show_number(b, offset=64, color=GREEN)
-            b -= 1
-            time.sleep(1)
-
-        b = 10
-        while b >= 0:
-            semaphore.show_number(b, offset=128, color=RED)
-            b -= 1
-            time.sleep_ms(500)
-
-
-    print('Finished!')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # pixels_fill_range(RED, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(5)
-
-    # pixels_fill_range(RED, 0, 64)
-    # pixels_fill_range(ORANGE, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(2)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(GREEN, 128, 192)
-    # pixels_show()
-    # time.sleep(5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(GREEN, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(GREEN, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(BLACK, 64, 128)
-    # pixels_fill_range(GREEN, 128, 192)
-    # pixels_show()
-    # time.sleep(0.5)
-
-    # pixels_fill_range(BLACK, 0, 64)
-    # pixels_fill_range(ORANGE, 64, 128)
-    # pixels_fill_range(BLACK, 128, 192)
-    # pixels_show()
-    # time.sleep(2)
+    semaphore.demo
