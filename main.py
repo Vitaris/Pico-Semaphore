@@ -25,7 +25,8 @@ class Semaphore:
     
     def show_symbol(self, start, stop, color=WHITE):
         self.ws2812.pixels_fill_range(start, stop, color)
-        # self._set_digit(symbol, 1, offset, color)
+        self.ws2812.pixels_show()
+
     
     def show_number(self, number, offset=0, color=WHITE):
         if number < 0 and number > 99 :
@@ -58,39 +59,42 @@ class Semaphore:
         pass
 
     def demo(self):
-        i = 0
         while True:
-            if i == 0:      # Red + count down
-                j = 10
-                self.show_symbol(0, 64, color=RED)
-                self.show_symbol(64, 128, color=BLACK)
-                self.show_symbol(128, 192, color=BLACK)
-                while j > 0: 
-                    self.show_number(j, offset=64, color=WHITE)
-                    j -= 1
-                    time.sleep(1)
+            # Red + count down
+            j = 10
+            self.show_symbol(0, 64, color=RED)
+            # self.show_symbol(64, 128, color=BLACK)
+            self.show_symbol(128, 192, color=BLACK)
+            while j > 1: 
+                self.show_number(j, offset=64, color=WHITE)
+                j -= 1
+                time.sleep(1)
 
-            elif i == 1:    # Orange
-                self.show_symbol(0, 64, color=BLACK)
-                self.show_symbol(64, 128, color=ORANGE)
-                self.show_symbol(128, 192, color=BLACK)
+            # Red + Orange
+            self.show_symbol(0, 64, color=RED)
+            self.show_symbol(64, 128, color=ORANGE)
+            self.show_symbol(128, 192, color=BLACK)
+            time.sleep(1)
 
-            elif i == 2:    # Green + count down
-                j = 10
-                self.show_symbol(0, 64, color=BLACK)
-                self.show_symbol(64, 128, color=BLACK)
-                self.show_symbol(128, 192, color=GREEN)
-                while j > 0: 
-                    self.show_number(j, offset=64, color=WHITE)
-                    j -= 1
-                    time.sleep(1)
+            # Green + count down
+            j = 10
+            self.show_symbol(0, 64, color=BLACK)
+            self.show_symbol(64, 128, color=BLACK)
+            self.show_symbol(128, 192, color=GREEN)
+            while j > 1: 
+                self.show_number(j, offset=64, color=WHITE)
+                j -= 1
+                time.sleep(1)
 
-            else:
-                i = 0
+            # Orange
+            self.show_symbol(0, 64, color=BLACK)
+            self.show_symbol(64, 128, color=ORANGE)
+            self.show_symbol(128, 192, color=BLACK)
+            time.sleep(1)
 
-            i += 0
+            
 
 
 if __name__ == "__main__":
     semaphore = Semaphore()
-    semaphore.demo
+    semaphore.demo()
