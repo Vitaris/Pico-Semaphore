@@ -1,4 +1,31 @@
 {
-    "role": "advertiser",
-    "brightness": 0.2
+    "name": "Sem_02",
+    "role": "listener",   
+    "brightness": 0.02,
+    "shape": "circle",
+    "listeners": ["Sem_02", "Sem_03"],
+    "trafic_control": {
+        "0":    {"Sem_01": ["red", 10, false],      "Sem_02": [false, 10,  "green"],  "Sem_03": ["red", 10, false]},
+        "1":    {"Sem_01": ["red", 9, false],       "Sem_02": [false, 9,  "green"],   "Sem_03": ["red", 9, false]},
+        "2":    {"Sem_01": ["red", 8, false],       "Sem_02": [false, 8, "green"],    "Sem_03": ["red", 8, false]},
+        "3":    {"Sem_01": ["red", 7, false],       "Sem_02": [false, 7, "green"],    "Sem_03": ["red", 7, false]},
+        "4":    {"Sem_01": ["red", 6, false],       "Sem_02": [false, 6, "green"],    "Sem_03": ["red", 6, false]},
+        "5":    {"Sem_01": ["red", 5, false],       "Sem_02": [false, 5, "green"],    "Sem_03": ["red", 5, false]},
+        "6":    {"Sem_01": ["red", 4, false],       "Sem_02": [false, 4, "green"],    "Sem_03": ["red", 4, false]},
+        "7":    {"Sem_01": ["red", 3, false],       "Sem_02": [false, 3, "green"],    "Sem_03": ["red", 3, false]},
+        "8":    {"Sem_01": ["red", 2, "green"],     "Sem_02": [false, 2, false],      "Sem_03": ["red", 2, false]},
+        "9":    {"Sem_01": ["red", 1, false],       "Sem_02": [false, 1, "green"],    "Sem_03": ["red", 1, false]},
+        "10":   {"Sem_01": [false, false, "green"], "Sem_02": ["red", false, false],  "Sem_03": ["red", 10, false]},
+
+        "11":   {"Sem_01": [false, 9, "green"],   "Sem_02": ["red", 9, false],       "Sem_03": ["red", 9, false]},
+        "12":   {"Sem_01": [false, 8, "green"],   "Sem_02": ["red", 8, false],       "Sem_03": ["red", 8, false]},
+        "13":   {"Sem_01": [false, 7, "green"],   "Sem_02": ["red", 7, false],       "Sem_03": ["red", 7, false]},
+        "14":   {"Sem_01": [false, 6, "green"],   "Sem_02": ["red", 6, false],       "Sem_03": ["red", 6, false]},
+        "15":   {"Sem_01": [false, 5, "green"],   "Sem_02": ["red", 5, false],       "Sem_03": ["red", 5, false]},
+        "16":   {"Sem_01": [false, 4, "green"],   "Sem_02": ["red", 4, false],       "Sem_03": ["red", 4, false]},
+        "17":   {"Sem_01": [false, 3, "green"],   "Sem_02": ["red", 3, false],       "Sem_03": ["red", 3, false]},
+        "18":   {"Sem_01": [false, 2, false],     "Sem_02": ["red", 2, "green"],     "Sem_03": ["red", 2, false]},
+        "19":   {"Sem_01": [false, 1, "green"],   "Sem_02": ["red", 1, false],       "Sem_03": ["red", 1, false]},
+        "20":   {"Sem_01": ["red", false, false], "Sem_02": [false, false, "green"], "Sem_03": ["red", 10, false]}
+    }
 }
