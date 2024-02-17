@@ -23,7 +23,7 @@ class ws2812:
     def __init__(self, num_leds, pin_num, brightness):
         self.num_leds = num_leds
         self.brightness = brightness
-        self.sm = rp2.StateMachine(0, ws2812_asm, freq=8_000_000, sideset_base=Pin(pin_num))
+        self.sm = rp2.StateMachine(0, ws2812_asm, freq=8_000_000, sideset_base=Pin(pin_num, Pin.PULL_DOWN))
         self.ar = array.array("I", [0 for _ in range(self.num_leds)])
         self.sm.active(1)
 
@@ -37,13 +37,13 @@ class ws2812:
         self.sm.put(dimmer_ar, 8)
         time.sleep_ms(10)
 
-    def pixels_set(self, i, color):
+    def pixel_set(self, i, color):
         self.ar[i] = (color[1]<<16) + (color[0]<<8) + color[2]
 
     def pixels_fill(self, color):
         for i in range(len(self.ar)):
-            self.pixels_set(i, color)
+            self.pixel_set(i, color)
 
     def pixels_fill_range(self, start, num_elements, color):
         for i in range(start, num_elements, 1):
-            self.pixels_set(i, color)
+            self.pixel_set(i, color)
