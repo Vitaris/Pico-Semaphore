@@ -1,9 +1,13 @@
-from ws2812 import ws2812
-from graphics import *
-# import picow_ble_temp_sensor
 import json
 import time
+from matrix_8x8 import matrix_8x8
+from graphics import *
 from machine import Pin
+import bluetooth
+from ble_simple_peripheral import BLESimplePeripheral
+import utime
+import random
+from machine import Timer
 
 
 class Semaphore:
@@ -13,88 +17,104 @@ class Semaphore:
     def __init__(self):
         with open("config.json", "r") as read_file:
             self.config = json.load(read_file)
-        self.ws2812 = ws2812(self.NUM_LEDS, self.PIN_NUM, self.config["brightness"])
-    
-    def _translate_4x8_to_led(self, symbol):
-        return [
-            symbol[31], symbol[27], symbol[23], symbol[19], symbol[15], symbol[11], symbol[ 7], symbol[ 3],
-            symbol[ 2], symbol[ 6], symbol[10], symbol[14], symbol[18], symbol[22], symbol[26], symbol[30],
-            symbol[29], symbol[25], symbol[21], symbol[17], symbol[13], symbol[ 9], symbol[ 5], symbol[ 1],
-            symbol[ 0], symbol[ 4], symbol[ 8], symbol[12], symbol[16], symbol[20], symbol[24], symbol[28]
-        ]
-    
-    def show_symbol(self, start, stop, color=WHITE):
-        self.ws2812.pixels_fill_range(start, stop, color)
-        self.ws2812.pixels_show()
-
-    
-    def show_number(self, number, offset=0, color=WHITE):
-        if number < 0 and number > 99 :
-            print(f'Given number is outside range 0-99: {number}')
-            return 
+        self.matrix = matrix_8x8(28, 3, brightness=self.config["brightness"])
+        self.ble = bluetooth.BLE()
+        self.conn = BLESimplePeripheral(self.ble, name=self.config["name"])
+        self.tim = Timer()
+        if self.config['role'] == 'commander':
+            self.count = 0
+            self.synchronized = True
+        elif self.config['role'] == 'listener':
+            self.count = -1
+            self.synchronized = False
+        else:
+            print('error')
+        self.init_timer()
         
-        digits = [int(x) for x in str(number)]
-        digits.reverse()
-
-        i = 0
-        for digit in digits:
-            self._set_digit(raw_digits[digit], i, offset, color)
-            i += 1
-
-        if len(digits) == 1:
-            self._set_digit(raw_blank, i, offset, color)
-
-        self.ws2812.pixels_show()
-
-    def _set_digit(self, digit_matrix, i, offset, color, lenght=32):
-        matrix = self._translate_4x8_to_led(digit_matrix)
-        for pixel in range(len(matrix)):
-            if matrix[pixel] == 1:
-                self.ws2812.pixels_set(pixel + (i * lenght) + offset, color)
-            elif matrix[pixel] == 0:
-                self.ws2812.pixels_set(pixel + (i * lenght) + offset, BLACK)
-
-        
-    def traffic_control(self):
+    def do_traffic_control(self):
         pass
 
-    def demo(self):
+    def on_rx(self, data):
+        print("Data received: ", data)
+        if data[:3] == b'set':
+            print('Set command received!')
+            self.count = int(data[3:])
+            self.synchronized = True
+        elif data[:5] == b'reset':
+            print('Reset command received!')
+            self.count = -1
+            self.synchronized = False
+                    
+    def send_command(self):
+        if self.conn.is_connected():
+            msg="pushbutton pressed\n"
+            self.conn.send(f'set{self.count}')
+
+    def listen(self):
         while True:
-            # Red + count down
-            j = 10
-            self.show_symbol(0, 64, color=RED)
-            # self.show_symbol(64, 128, color=BLACK)
-            self.show_symbol(128, 192, color=BLACK)
-            while j > 1: 
-                self.show_number(j, offset=64, color=WHITE)
-                j -= 1
-                time.sleep(1)
+            if self.conn.is_connected():
+                self.conn.on_write(self.on_rx)
 
-            # Red + Orange
-            self.show_symbol(0, 64, color=RED)
-            self.show_symbol(64, 128, color=ORANGE)
-            self.show_symbol(128, 192, color=BLACK)
-            time.sleep(1)
+    def init_timer(self):
+        self.tim.init(freq=1, mode=Timer.PERIODIC, callback=self.periodic_callback)
 
-            # Green + count down
-            j = 10
-            self.show_symbol(0, 64, color=BLACK)
-            self.show_symbol(64, 128, color=BLACK)
-            self.show_symbol(128, 192, color=GREEN)
-            while j > 1: 
-                self.show_number(j, offset=64, color=WHITE)
-                j -= 1
-                time.sleep(1)
+    def periodic_callback(self, timer):
+        if self.synchronized:
+            # self.demo()
+            i = 0
+            for light in self.config["trafic_control"][str(self.count)][self.config["name"]]:
+                print(f'light: {light}')
+                if light:
+                    print(f'after light: {light}')
+                    if type(light) == str:
+                        if light == "red":
+                            self.matrix.show_symbol(circle, offset=i, color=RED)
+                        elif light == "green":
+                            self.matrix.show_symbol(circle, offset=i, color=GREEN)
+                    elif type(light) == int:
+                        self.matrix.show_number(light, offset=i, color=WHITE)
+                else:
+                    self.matrix.show_symbol(square, offset=i, color=BLACK)
 
-            # Orange
-            self.show_symbol(0, 64, color=BLACK)
-            self.show_symbol(64, 128, color=ORANGE)
-            self.show_symbol(128, 192, color=BLACK)
-            time.sleep(1)
-
+                i += 1
+            self.count += 1
+            if self.count > 20:
+                self.count = 0
+            print(f'Count: {self.count}')
+        else:
+            self.matrix.show_symbol(square, offset=0, color=BLACK)
+            self.matrix.show_symbol(square, offset=1, color=BLACK)
+            self.matrix.show_symbol(square, offset=2, color=BLACK)
+            if self.count == -1:
+                self.matrix.show_symbol(square, offset=1, color=ORANGE)
+                self.count -= 1
+            else:
+                self.count = -1
             
+    def demo(self):
+        if self.count == 0:
+            self.matrix.show_symbol(circle, color=RED)
+        elif self.count == 1:
+
+            self.matrix.show_symbol(circle, color=ORANGE)
+        elif self.count == 2:
+            self.matrix.show_symbol(circle, color=GREEN)
 
 
 if __name__ == "__main__":
     semaphore = Semaphore()
-    semaphore.demo()
+    # i = 0
+    # while True:
+    #     with open('data.txt', 'a') as file:
+    #         file.write(str(i) + '\n')
+    #     if i > 100:
+    #         break
+    #     i += 1
+
+    while True:
+        if not semaphore.synchronized:
+            if semaphore.config['role'] == 'commander':
+                semaphore.send_command()
+            elif semaphore.config['role'] == 'listener':
+                semaphore.listen()
+        utime.sleep(0.25)
