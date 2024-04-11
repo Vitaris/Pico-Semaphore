@@ -1,5 +1,3 @@
-# This example finds and connects to a BLE temperature sensor (e.g. the one in ble_temperature.py).
-
 import bluetooth
 import random
 import struct
@@ -37,21 +35,7 @@ _ADV_NONCONN_IND = const(0x03)
 
 _DEVICE = const(0x28cdc10b595b)
 
-# org.bluetooth.service.environmental_sensing
-_ENV_SENSE_UUID = bluetooth.UUID(0x181A)
 _UART_UUID = bluetooth.UUID("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
-# org.bluetooth.characteristic.temperature
-_TEMP_UUID = bluetooth.UUID(0x2A6E)
-_TEMP_CHAR = (
-    _TEMP_UUID,
-    bluetooth.FLAG_READ | bluetooth.FLAG_NOTIFY,
-)
-
-_ENV_SENSE_SERVICE = (
-    _ENV_SENSE_UUID,
-    (_TEMP_CHAR,),
-)
-
 _UART_TX_UUID = bluetooth.UUID("6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
 _UART_RX_UUID = bluetooth.UUID("6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
 
@@ -68,14 +52,13 @@ _UART_SERVICE = (
     (_UART_TX_CHAR, _UART_RX_CHAR),
 )
 
-class BLETemperatureCentral:
+class BLESemaphoreCentral:
     def __init__(self, ble):
         self._ble = ble
         self._ble.active(True)
         self._ble.irq(self._irq)
         ((self._handle_tx, self._handle_rx),) = self._ble.gatts_register_services((_UART_SERVICE,))
         self._reset()
-        self._led = Pin('LED', Pin.OUT)
 
     def _reset(self):
         # Cached name and address from a successful scan.
@@ -91,6 +74,8 @@ class BLETemperatureCentral:
         self._scan_callback = None
         self._conn_callback = None
         self._read_callback = None
+        self._write_callback = None
+        self._write_done = False
 
         # Persistent callback for when new data is notified from the device.
         self._notify_callback = None
@@ -102,16 +87,9 @@ class BLETemperatureCentral:
         self._value_handle = None
 
     def _irq(self, event, data):
-        # print(f'event: {event}')
         if event == _IRQ_SCAN_RESULT:
             addr_type, addr, adv_type, rssi, adv_data = data
-            # if decode_name(adv_data).startswith('Sem'):
-            #     print(f'addr_type, addr, adv_type, rssi, adv_data: {addr_type}, {bytes(addr)}, {adv_type},{rssi},{decode_name(adv_data)}')
-            #     print(ubinascii.hexlify(addr).decode())
-            #     print(str(hex(_DEVICE))[2:])
-            
             if ubinascii.hexlify(addr).decode() == str(hex(_DEVICE))[2:]:
-            # if adv_type in (_ADV_IND, _ADV_DIRECT_IND):
                 type_list = decode_services(adv_data)
                 if _UART_UUID in type_list:
                     # Found a potential device, remember it and stop scanning.
@@ -131,14 +109,20 @@ class BLETemperatureCentral:
                     self._scan_callback(None, None, None)
 
         elif event == _IRQ_PERIPHERAL_CONNECT:
-            # Connect successful.
             conn_handle, addr_type, addr = data
+            print(f'conn_handle: {conn_handle}, addr_type = {addr_type}, addr: {bytes(addr)}')
+            if conn_handle == 0:
+                print('Connect unsuccessful!')
+                return False
+            else:
+                print('Connect successful!')
             if addr_type == self._addr_type and addr == self._addr:
                 self._conn_handle = conn_handle
                 self._ble.gattc_discover_services(self._conn_handle)
 
         elif event == _IRQ_PERIPHERAL_DISCONNECT:
             # Disconnect (either initiated by us or the remote end).
+            print('Disconnected!')
             conn_handle, _, _ = data
             if conn_handle == self._conn_handle:
                 # If it was initiated by us, it'll already be reset.
@@ -173,7 +157,7 @@ class BLETemperatureCentral:
                 if self._conn_callback:
                     self._conn_callback()
             else:
-                print("Failed to find temperature characteristic.")
+                print("Failed to find UART characteristic.")
 
         elif event == _IRQ_GATTC_READ_RESULT:
             # A read completed successfully.
@@ -201,9 +185,9 @@ class BLETemperatureCentral:
             # A gattc_write() has completed.
             # Note: Status will be zero on success, implementation-specific value otherwise.
             conn_handle, value_handle, status = data
-            print(f'Write done, status: {status}')
-
-            
+            if status == 0:
+                self._write_done = True
+                print(f'Write done, status: {status}')
 
     # Returns true if we've successfully connected and discovered characteristics.
     def is_connected(self):
@@ -217,14 +201,14 @@ class BLETemperatureCentral:
         self._ble.gap_scan(2000, 30000, 30000)
 
     # Connect to the specified device (otherwise use cached address from a scan).
-    def connect(self, addr_type=None, addr=None, callback=None):
-        self._addr_type = addr_type or self._addr_type
-        self._addr = addr or self._addr
+    def connect(self, addr, callback=None):
+        self._addr_type = 0
+        self._addr = addr
         self._conn_callback = callback
         if self._addr_type is None or self._addr is None:
             return False
+        print(f'_addr_type: {self._addr_type}, _addr: {self._addr}')
         self._ble.gap_connect(self._addr_type, self._addr)
-        return True
 
     # Disconnect from current device.
     def disconnect(self):
@@ -244,6 +228,7 @@ class BLETemperatureCentral:
             print(error)
 
     def send(self, data):
+        self._write_done = False
         self._ble.gattc_write(self._conn_handle, self._handle_rx, data, 1)
 
     # Sets a callback to be invoked when the device notifies us.
@@ -259,60 +244,62 @@ class BLETemperatureCentral:
 
     def value(self):
         return self._value
+    
 
-def sleep_ms_flash_led(self, flash_count, delay_ms):
-    self._led.off()
-    while(delay_ms > 0):
-        for i in range(flash_count):            
-            self._led.on()
-            time.sleep_ms(100)
-            self._led.off()
-            time.sleep_ms(100)
-            delay_ms -= 200
-        time.sleep_ms(1000)
-        delay_ms -= 1000
+# Byte to readable addr
+    # a = str.upper(ubinascii.hexlify(addr).decode())
+    # print(f'MAC: {a[0:2]}:{a[2:4]}:{a[4:6]}:{a[6:8]}:{a[8:10]}:{a[10:12]}')
 
-def print_temp(result):
-    print("read temp: %.2f degc" % result)
 
-def demo(ble, central):
-    not_found = False
+    def sent_to_address(self, addr, value):
+        byte_address = ubinascii.unhexlify(addr.replace(':', '').lower())
+        try:
+            central.connect(byte_address)
+            i = 0
+            j = 0
+            while not central.is_connected():
+                print(f'Pass: {j}')
 
-    def on_scan(addr_type, addr, name):
-        if addr_type is not None:
-            print("Found sensor: %s" % name)
-            central.connect()
+                if i > 20:
+                    raise Exception("Can't connect")
+                i += 1
+                j += 1
+                time.sleep_ms(100)
+
+            central.send(value)
+            i = 0
+            while not central._write_done:
+                if i > 20:
+                    raise Exception("Can't write")
+                i += 1
+                time.sleep_ms(100)
+
+            central.disconnect()
+            while central.is_connected():
+                if i > 20:
+                    raise Exception("Can't disconnect")
+                i += 1
+                time.sleep_ms(100)
+            time.sleep_ms(1000)
+        except:
+            return False
         else:
-            nonlocal not_found
-            not_found = True
-            print("No sensor found.")
-
-    central.scan(callback=on_scan)
-
-    # Wait for connection...
-    while not central.is_connected():
-        time.sleep_ms(100)
-        if not_found:
-            return
-
-    print("Connected")
-    central.send("set10")
-    time.sleep_ms(10000)
-    central.send("reset")
-    time.sleep_ms(1000)
-    central.disconnect()
-    time.sleep_ms(1000)
-
-    # # Explicitly issue reads
-    # while central.is_connected():
-    #     central.read(callback=print_temp)
-    #     sleep_ms_flash_led(central, 2, 2000)
-
-    print("Disconnected")
+            return True
 
 if __name__ == "__main__":
     ble = bluetooth.BLE()
-    central = BLETemperatureCentral(ble)
-    while(True):
-        demo(ble, central)
-        sleep_ms_flash_led(central, 1, 10000)
+    central = BLESemaphoreCentral(ble)
+    while True:
+        central.sent_to_address('28:CD:C1:0B:59:5B', "set10")
+        time.sleep_ms(2500)
+        central.sent_to_address('28:CD:C1:0B:59:5B', "reset")
+        time.sleep_ms(2500)
+        central.sent_to_address('28:CD:C1:0B:59:21', "set10")
+        time.sleep_ms(2500)
+        central.sent_to_address('28:CD:C1:0B:59:21', "reset")
+        time.sleep_ms(2500)
+    
+    # while(True):
+    # # demo(ble, central)
+    #     central.update_counter(b'(\xcd\xc1\x0bY[', "set10")
+    #     # central.update_counter(b'(\xcd\xc1\x0bY!', "set10")
